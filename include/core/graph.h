@@ -8,6 +8,8 @@
 namespace infini
 {
 
+    class TransposeObj;
+
     class GraphObj : public Object
     {
     protected:
@@ -116,6 +118,11 @@ namespace infini
          * @brief If the nodes is sorted in topological order.
          */
         bool sorted;
+
+        /**
+         * @brief Check if transpose only swaps the last two dimensions.
+         */
+        bool isSwapLastTwoDims(class TransposeObj *transpose);
     };
 
 } // namespace infini

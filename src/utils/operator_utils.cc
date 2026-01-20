@@ -8,13 +8,46 @@ Shape infer_broadcast(const Shape &A, const Shape &B) {
     // =================================== 作业 ===================================
     // TODO：对 A 和 B 进行双向广播，返回广播后的形状。
     // REF: https://github.com/onnx/onnx/blob/main/docs/Broadcasting.md
+    // 1. 比较 A 和 B 的维度数
+    // 2. 从后往前遍历维度，若对应维度相等或其中一个为 1，则继续遍历；否则，若其中一个为 1，则广播该维度；否则，报错
+    // 3. 返回广播后的形状
+    int rankA = A.size(), rankB = B.size();
+    IT_ASSERT(rankA >= 0 && rankB >= 0);
+    
+    int maxRank = std::max(rankA, rankB);
+    Shape ans(maxRank);
+    
+    // 从右到左遍历维度
+    for (int i = 0; i < maxRank; ++i) {
+        int dimA = 1, dimB = 1;
+        
+        // 计算从右到左的索引
+        int indexA = rankA - 1 - i;
+        int indexB = rankB - 1 - i;
+        
+        if (indexA >= 0) {
+            dimA = A[indexA];
+        }
+        
+        if (indexB >= 0) {
+            dimB = B[indexB];
+        }
+        
+        IT_ASSERT(dimA == dimB || dimA == 1 || dimB == 1,
+                  "Broadcast: Incompatible shapes for broadcast.");
+        ans[maxRank - 1 - i] = std::max(dimA, dimB);
+    }
+
     // =================================== 作业 ===================================
     
-    return {};
+    return ans;
 }
 
 int get_real_axis(const int &axis, const int &rank) {
-    IT_ASSERT(rank >= 1);
+    IT_ASSERT(rank >= 0);
+    if (rank == 0) {
+        return 0;
+    }
     IT_ASSERT(axis >= -rank && axis <= (rank - 1));
     int newAxis;
     if (axis < 0) {

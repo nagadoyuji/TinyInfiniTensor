@@ -1,4 +1,5 @@
 #include "core/allocator.h"
+#include <map>
 #include <utility>
 
 namespace infini
@@ -8,6 +9,7 @@ namespace infini
         used = 0;
         peak = 0;
         ptr = nullptr;
+        totalSize = 0;
 
         // 'alignment' defaults to sizeof(uint64_t), because it is the length of
         // the longest data type currently supported by the DataType field of
@@ -26,24 +28,60 @@ namespace infini
     size_t Allocator::alloc(size_t size)
     {
         IT_ASSERT(this->ptr == nullptr);
-        // pad the size to the multiple of alignment
         size = this->getAlignedSize(size);
 
-        // =================================== 作业 ===================================
-        // TODO: 设计一个算法来分配内存，返回起始地址偏移量
-        // =================================== 作业 ===================================
+        for (auto it = freeBlocks.begin(); it != freeBlocks.end(); ++it)
+        {
+            if (it->second >= size)
+            {
+                size_t offset = it->first;
+                if (it->second > size)
+                {
+                    freeBlocks[it->first + size] = it->second - size;
+                }
+                freeBlocks.erase(it);
+                used += size;
+                return offset;
+            }
+        }
 
-        return 0;
+        size_t offset = used;
+        used += size;
+        if (used > peak)
+        {
+            peak = used;
+        }
+        return offset;
     }
 
     void Allocator::free(size_t addr, size_t size)
     {
         IT_ASSERT(this->ptr == nullptr);
         size = getAlignedSize(size);
+        used -= size;
 
-        // =================================== 作业 ===================================
-        // TODO: 设计一个算法来回收内存
-        // =================================== 作业 ===================================
+        size_t start = addr;
+        size_t end = addr + size;
+
+        auto it = freeBlocks.lower_bound(start);
+        
+        if (it != freeBlocks.begin())
+        {
+            auto prev = std::prev(it);
+            if (prev->first + prev->second == start)
+            {
+                start = prev->first;
+                freeBlocks.erase(prev);
+            }
+        }
+
+        if (it != freeBlocks.end() && it->first == end)
+        {
+            end = it->first + it->second;
+            freeBlocks.erase(it);
+        }
+
+        freeBlocks[start] = end - start;
     }
 
     void *Allocator::getPtr()
